@@ -1,1 +1,1 @@
-# Assignment 01: Deep Learning Foundations
+Tarea 01: Fundamentos del aprendizaje profundo
