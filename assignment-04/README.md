@@ -1,1 +1,1 @@
-Assignment 04: Generalization Error and Stochastic Optimization
+Tarea 04: Error de generalización y optimización estocástica
