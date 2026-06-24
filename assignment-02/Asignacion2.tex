@@ -1,0 +1,141 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage[spanish]{babel}
+\singlespacing
+
+\title{2da Asignación: Descomposición en Valores Singulares (SVD)}
+\author{Víctor Manuel Ruiz Pereda}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\fbox{
+\begin{minipage}{0.9\textwidth}
+\small \textbf{Aviso de Integridad Académica:} El planteamiento del problema, las reglas de la matriz y el marco conceptual de este ejercicio provienen del curso \textit{MAT 4953/6973 Math Foundations of AI} (Dr. Eduardo Dueñez, UTSA). Todos los cálculos matriciales, las derivaciones algebraicas exactas y los análisis empíricos presentados en este documento han sido desarrollados analíticamente de forma original para la presente entrega.
+\end{minipage}
+}
+\end{center}
+\vspace{0.5cm}
+
+\section*{Tarea de Calentamiento: Progreso en Escritura Técnica}
+Reflexionando sobre mi compromiso en la primera asignación (reducir el abuso de notación simbólica en favor de prosa analítica), he observado una mejora palpable en mi capacidad para redactar reportes matemáticos fluidos. Al desarrollar los cálculos de álgebra lineal para esta entrega, me he obligado a articular los pasos algorítmicos con lenguaje natural, por ejemplo, explicando verbalmente el proceso de ortonormalización en lugar de simplemente arrojar las ecuaciones vectoriales secuencialmente. Esta práctica ha hecho que mis demostraciones sean mucho más legibles. No obstante, un área que aún requiere atención es la transición entre la deducción manual y la interpretación computacional; me he dado cuenta de que, al analizar los resultados de NumPy en la Tarea 2, tiendo a describir "qué" hace el código en lugar de "por qué" matemáticamente se relaciona con mis resultados exactos. En el futuro, trabajaré en entrelazar más estrechamente la teoría de espacios nulos con la salida computacional.
+
+\section*{Tarea Principal I: Selección de la Matriz}
+Para la resolución empírica de la SVD, he definido la siguiente matriz $A$ de tamaño $3 \times 2$:
+\begin{equation}
+    A = \begin{pmatrix} 2 & 1 \\ 1 & 2 \\ 1 & 1 \end{pmatrix}
+\end{equation}
+Validación de los requisitos estructurales impuestos:
+\begin{itemize}
+    \item \textbf{Entradas enteras pequeñas:} La matriz utiliza únicamente los valores $1$ y $2$.
+    \item \textbf{Rango 2:} Las dos columnas $(2, 1, 1)^T$ y $(1, 2, 1)^T$ son linealmente independientes (no son proporcionales).
+    \item \textbf{Perpendicularidad nula:} El producto punto de las columnas es $(2)(1) + (1)(2) + (1)(1) = 5 \neq 0$. Asimismo, ningún par de filas es ortogonal (ej. fila 1 $\cdot$ fila 2 $= 2(1) + 1(2) = 4 \neq 0$).
+    \item \textbf{Ceros permitidos:} La matriz no contiene entradas nulas, cumpliendo la regla de tener "a lo sumo dos".
+\end{itemize}
+
+\newpage
+\subsection*{Sub-Tarea 1: Cálculo Analítico Exacto de SVD [50 pts]}
+Buscamos la descomposición $A = U \Sigma V^T$.
+
+\subsubsection*{Paso 1: Matriz $V$ (Eigenvectores derechos)}
+Calculamos la matriz cuadrada $B = A^T A$:
+\begin{equation}
+    B = \begin{pmatrix} 2 & 1 & 1 \\ 1 & 2 & 1 \end{pmatrix} \begin{pmatrix} 2 & 1 \\ 1 & 2 \\ 1 & 1 \end{pmatrix} = \begin{pmatrix} 6 & 5 \\ 5 & 6 \end{pmatrix}
+\end{equation}
+Resolvemos el polinomio característico $\det(B - \lambda I) = 0$:
+\begin{equation}
+    (6 - \lambda)^2 - 25 = \lambda^2 - 12\lambda + 36 - 25 = \lambda^2 - 12\lambda + 11 = 0
+\end{equation}
+Factorizando, $(\lambda - 11)(\lambda - 1) = 0$. Los eigenvalores ordenados son $s_1 = 11$ y $s_2 = 1$.
+Los valores singulares de $A$ son las raíces cuadradas exactas:
+\begin{equation}
+    \sigma_1 = \sqrt{11}, \quad \sigma_2 = 1
+\end{equation}
+
+Procedemos a encontrar los eigenvectores ortonormales para construir $V$.
+Para $s_1 = 11$:
+$B - 11I = \begin{pmatrix} -5 & 5 \\ 5 & -5 \end{pmatrix} \Rightarrow \text{vector base } \begin{pmatrix} 1 \\ 1 \end{pmatrix}$.
+Normalizado: $v_1 = \frac{1}{\sqrt{2}}\begin{pmatrix} 1 \\ 1 \end{pmatrix}$.
+
+Para $s_2 = 1$:
+$B - I = \begin{pmatrix} 5 & 5 \\ 5 & 5 \end{pmatrix} \Rightarrow \text{vector base } \begin{pmatrix} -1 \\ 1 \end{pmatrix}$.
+Normalizado: $v_2 = \frac{1}{\sqrt{2}}\begin{pmatrix} -1 \\ 1 \end{pmatrix}$.
+
+La matriz ortogonal $V$ resulta:
+\begin{equation}
+    V = \frac{1}{\sqrt{2}} \begin{pmatrix} 1 & -1 \\ 1 & 1 \end{pmatrix}
+\end{equation}
+Comprobación: $V^T V = \frac{1}{2} \begin{pmatrix} 1 & 1 \\ -1 & 1 \end{pmatrix} \begin{pmatrix} 1 & -1 \\ 1 & 1 \end{pmatrix} = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix} = I$.
+
+\subsubsection*{Paso 2: Matriz $U$ (Eigenvectores izquierdos)}
+Por teoría, los eigenvalores no nulos de $C = A A^T$ son idénticos a los de $B$ ($11$ y $1$), siendo el tercer eigenvalor $0$ por deficiencia de rango.
+Encontramos los vectores ortonormales $u_i$ proyectando $v_i$ con la fórmula $u_i = \frac{1}{\sigma_i} A v_i$.
+
+Para $\sigma_1 = \sqrt{11}$:
+\begin{equation}
+    u_1 = \frac{1}{\sqrt{11}} \begin{pmatrix} 2 & 1 \\ 1 & 2 \\ 1 & 1 \end{pmatrix} \frac{1}{\sqrt{2}}\begin{pmatrix} 1 \\ 1 \end{pmatrix} = \frac{1}{\sqrt{22}} \begin{pmatrix} 3 \\ 3 \\ 2 \end{pmatrix}
+\end{equation}
+
+Para $\sigma_2 = 1$:
+\begin{equation}
+    u_2 = \frac{1}{1} \begin{pmatrix} 2 & 1 \\ 1 & 2 \\ 1 & 1 \end{pmatrix} \frac{1}{\sqrt{2}}\begin{pmatrix} -1 \\ 1 \end{pmatrix} = \frac{1}{\sqrt{2}} \begin{pmatrix} -1 \\ 1 \\ 0 \end{pmatrix}
+\end{equation}
+
+Para completar el espacio $\mathbb{R}^3$, requerimos un vector $u_3$ correspondiente al eigenvalor $0$, que sea ortogonal a $u_1$ y $u_2$. Utilizando el producto cruz entre $(3,3,2)$ y $(-1,1,0)$, obtenemos $(-2, -2, 6)$, el cual simplificamos escalarmente a $(-1, -1, 3)$.
+Al normalizar su magnitud ($\sqrt{(-1)^2 + (-1)^2 + 3^2} = \sqrt{11}$), obtenemos:
+\begin{equation}
+    u_3 = \frac{1}{\sqrt{11}} \begin{pmatrix} -1 \\ -1 \\ 3 \end{pmatrix}
+\end{equation}
+
+Agrupando, la matriz unitaria $U$ es:
+\begin{equation}
+    U = \begin{pmatrix} \frac{3}{\sqrt{22}} & \frac{-1}{\sqrt{2}} & \frac{-1}{\sqrt{11}} \\ \frac{3}{\sqrt{22}} & \frac{1}{\sqrt{2}} & \frac{-1}{\sqrt{11}} \\ \frac{2}{\sqrt{22}} & 0 & \frac{3}{\sqrt{11}} \end{pmatrix}
+\end{equation}
+Las columnas son mutuamente ortogonales, garantizando $U^T U = I$.
+
+\subsubsection*{Paso 3: Verificación de la Expansión SVD}
+Con $\Sigma = \begin{pmatrix} \sqrt{11} & 0 \\ 0 & 1 \\ 0 & 0 \end{pmatrix}$, comprobamos $A = \sigma_1 u_1 v_1^T + \sigma_2 u_2 v_2^T$:
+\begin{align*}
+    \sqrt{11} \left( \frac{1}{\sqrt{22}} \begin{pmatrix} 3 \\ 3 \\ 2 \end{pmatrix} \right) \left( \frac{1}{\sqrt{2}} (1, 1) \right) + 1 \left( \frac{1}{\sqrt{2}} \begin{pmatrix} -1 \\ 1 \\ 0 \end{pmatrix} \right) \left( \frac{1}{\sqrt{2}} (-1, 1) \right) \\
+    = \frac{1}{2} \begin{pmatrix} 3 & 3 \\ 3 & 3 \\ 2 & 2 \end{pmatrix} + \frac{1}{2} \begin{pmatrix} 1 & -1 \\ -1 & 1 \\ 0 & 0 \end{pmatrix} = \frac{1}{2} \begin{pmatrix} 4 & 2 \\ 2 & 4 \\ 2 & 2 \end{pmatrix} = \begin{pmatrix} 2 & 1 \\ 1 & 2 \\ 1 & 1 \end{pmatrix} = A.
+\end{align*}
+El cálculo exacto es matemáticamente congruente.
+
+\subsection*{Sub-Tarea 2: Aproximaciones y Análisis Numérico [25 pts]}
+
+\subsubsection*{1. Aproximaciones Decimales (Precisión a 4 dígitos)}
+\begin{equation*}
+    U \approx \begin{pmatrix} 0.6396 & -0.7071 & -0.3015 \\ 0.6396 & 0.7071 & -0.3015 \\ 0.4264 & 0 & 0.9045 \end{pmatrix}, \quad \Sigma \approx \begin{pmatrix} 3.3166 & 0 \\ 0 & 1 \\ 0 & 0 \end{pmatrix}, \quad V \approx \begin{pmatrix} 0.7071 & -0.7071 \\ 0.7071 & 0.7071 \end{pmatrix}
+\end{equation*}
+
+\subsubsection*{2. y 3. NumPy vs. Cálculos Manuales}
+Al ejecutar \texttt{np.linalg.svd} sobre la matriz $A$, la librería retorna los mismos valores singulares ($3.3166$ y $1.0$). Sin embargo, la descomposición SVD no es rígidamente única en términos direccionales. Para cualquier matriz real existen \textbf{4 tripletas diferentes} $(U, \Sigma, V)$ que son matemáticamente válidas. Esto obedece a que los eigenvectores singulares $(u_i, v_i)$ pueden ser invertidos en signo simultáneamente: $\sigma_i (-u_i) (-v_i)^T = \sigma_i u_i v_i^T$. Como el rango de la matriz es 2, el número total de permutaciones combinatorias de signos es $2^2 = 4$. NumPy elige la orientación que optimiza su rutina interna (LAPACK), lo cual frecuentemente resulta en vectores que apuntan en direcciones diametralmente opuestas a los hallados mediante derivación manual.
+
+\subsubsection*{4. Análisis de Dimensión Superior (Bonus)}
+Si evaluamos una matriz hipotética de tamaño $4 \times 2$ con rango 2, la variabilidad se expande radicalmente. Seguiríamos teniendo $2^2 = 4$ variaciones de signo para el espacio de la imagen. Sin embargo, la matriz $U$ sería de $4 \times 4$. Los dos primeros vectores columnas están dictados por la SVD, pero los dos últimos vectores ($u_3, u_4$) corresponden al espacio nulo izquierdo, el cual tendría una dimensión de 2. Puesto que podemos elegir cualquier par de bases ortonormales en un plano 2D para abarcar este espacio (una rotación continua), existe un conjunto \textbf{infinito} de matrices $U$ que sirven como solución rigurosa para la descomposición.
+
+\subsection*{Sub-Tarea 3: Aproximación de Rango Bajo (Raccoon) [25 pts]}
+A través de la experimentación con la matriz \texttt{img\_gray} (que ostenta un rango completo teórico de 768) en el entorno de Colab, se confirmó el poder de la SVD para la compresión estructural.
+Con un truncamiento extremo a los primeros $k=10$ valores singulares, la imagen se asemeja a un mosaico abstracto; los patrones gruesos de luz y sombra están presentes, pero la textura se pierde en el ruido de compresión (banding). A medida que $k$ escala, el detalle facial del mapache emerge con rapidez.
+Tras el escrutinio empírico, determiné que el umbral donde las anomalías de compresión se vuelven **visualmente imperceptibles** (sin magnificación artificial) se sitúa alrededor de $k = \textbf{130}$. Conservar solo una sexta parte del espectro singular es suficiente para reconstruir fidedignamente el contenido perceptivo, ilustrando cómo la información semántica en datos naturales está fuertemente correlacionada en un colector de baja dimensión.
+
+\subsection*{Bonus Sub-Tarea 4: Intersección entre SVD y PCA [15 pts]}
+El Análisis de Componentes Principales (PCA) y la SVD guardan una relación simbiótica en el procesamiento de datos. PCA busca abstraer una matriz de datos multidimensional en ejes ortogonales (componentes principales) que maximicen la varianza del conjunto. Clásicamente, esto se logra computando la matriz de covarianza y hallando sus eigenvectores.
+Sin embargo, calcular $X^T X$ para conjuntos masivos acarrea problemas de inestabilidad de punto flotante y un costo temporal severo. 
+
+La SVD ofrece una elegante "ruta directa" algebraica. Si centramos los datos empíricos restando la media de cada columna formando la matriz $X$, su SVD es $X = U \Sigma V^T$.
+Si elevamos esto al concepto de covarianza, observamos:
+\begin{equation}
+    X^T X = (V \Sigma U^T)(U \Sigma V^T) = V \Sigma^2 V^T
+\end{equation}
+Esta deducción es reveladora: la matriz $V$ generada automáticamente por la SVD contiene exactamente los Componentes Principales que el algoritmo PCA está buscando. Además, los valores singulares $\sigma_i$ están directamente relacionados con la varianza explicada por cada componente. Consecuentemente, en las librerías modernas como scikit-learn, el PCA no se ejecuta calculando matrices de covarianza; en su lugar, se invoca una rutina de SVD directa sobre la matriz centrada, garantizando superioridad numérica y velocidad de convergencia.
+
+\end{document}
