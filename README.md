@@ -12,10 +12,12 @@ Bienvenidos a mi repositorio académico  del curso **Matemáticas de la IA**. Es
 * **Nombre:** Víctor Manuel Ruiz Pereda
 * **Grado:** Matemáticas Aplicadas y Computacion FES Acatlán UNAM
 
----
-## 🗂️ Programa del curso y entregables
-* `assignment-01/` ── Fundamentos de redes neuronales y evaluación del conjunto de datos MNIST
-* `assignment-02/` ── Principios de la descomposición en valores singulares (SVD) de matrices
-* `assignment-03/` ── Contornos gaussianos multivariados y entropía relativa de Kullback-Leibler
-* `assignment-04/` ── Límites de compensación sesgo-varianza y optimizadores de gradiente estocástico
-* `assignment-05/` ── Retropropagación Gradientes, transformadores de atención y sistemas VAE
+## 📂 Índice de Asignaciones
+
+| Asignación | Temática Principal | Documento |
+| :--- | :--- | :--- |
+| **Assignment 1** | Redes Feedforward, MNIST y Entropía Cruzada Categórica |
+| **Assignment 2** | Descomposición en Valores Singulares (SVD) | 
+| **Assignment 3** | Probabilidad Multivariada y Divergencia KL | 
+| **Assignment 4** | Tradeoff Sesgo-Varianza y Optimización Estocástica | 
+| **Assignment 5** | Backpropagation y Modelos Generativos |
