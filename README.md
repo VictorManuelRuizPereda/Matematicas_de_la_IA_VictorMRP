@@ -14,10 +14,10 @@ Bienvenidos a mi repositorio académico  del curso **Matemáticas de la IA**. Es
 
 ### 📂 Índice de Asignaciones
 
-| Asignación | Temática Principal | Documento |
+| Asignación | Temática Principal | Estatus |
 | :--- | :--- | :--- |
-| **Assignment 1** | Redes Feedforward, MNIST y Entropía Cruzada | [Ver PDF](./assignment-01/Assignment_1.pdf) |
-| **Assignment 2** | Descomposición en Valores Singulares (SVD) | [Ver PDF](./assignment-02/Assignment_2.pdf) |
-| **Assignment 3** | Probabilidad Multivariada y Divergencia KL | [Ver PDF](./assignment-03/Assignment_3.pdf) |
-| **Assignment 4** | Tradeoff Sesgo-Varianza y Optimización Estocástica | [Ver PDF](./assignment-04/Assignment_4.pdf) |
-| **Assignment 5** | Backpropagation y Modelos Generativos | [Ver PDF](./assignment-05/Assignment_5.pdf) |
+| **Assignment 1** | Redes Feedforward, MNIST y Entropía Cruzada | Entregado |
+| **Assignment 2** | Descomposición en Valores Singulares (SVD) | Entregado |
+| **Assignment 3** | Probabilidad Multivariada y Divergencia KL | Entregado |
+| **Assignment 4** | Tradeoff Sesgo-Varianza y Optimización Estocástica | Entregado |
+| **Assignment 5** | Backpropagation y Modelos Generativos | Entregado |
