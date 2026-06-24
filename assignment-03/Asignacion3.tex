@@ -1,0 +1,125 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage[spanish]{babel}
+\singlespacing
+
+\title{3ra Asignación: Geometría Probabilística y Divergencia de Kullback-Leibler}
+\author{Víctor Manuel Ruiz Pereda}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+\fbox{
+\begin{minipage}{0.9\textwidth}
+\small \textbf{Declaración de Integridad y Atribución:} Las directrices de los problemas, el marco teórico de referencia y las condiciones estructurales de esta tarea corresponden al plan de estudios del curso \textit{MAT 4953/6973 Mathematical Foundations of AI}, desarrollado por el Dr. Eduardo Dueñez (UTSA). Todas las deducciones algebraicas, interpretaciones geométricas y respuestas analíticas desarrolladas en este documento son de autoría propia y original.
+\end{minipage}
+}
+\end{center}
+\vspace{0.5cm}
+
+\section*{Tarea de Calentamiento: Reflexión de Progreso Técnico}
+Al evaluar mi progresión en la redacción de textos matemáticos este semestre, destaco un avance significativo en la estructuración visual de las demostraciones largas. Al inicio del curso, mi tendencia era condensar secuencias completas de álgebra dentro de párrafos de texto continuo utilizando notación en línea, lo cual saturaba la lectura y dificultaba el seguimiento de los pasos lógicos. Actualmente, he implementado la práctica de aislar las derivaciones importantes utilizando entornos de ecuaciones alineadas y justificando explícitamente cada transformación algebraica en el texto circundante. No obstante, una debilidad que acabo de identificar gracias a las asignaciones recientes es la falta de consistencia en mi notación vectorial; a veces utilizo negritas para vectores y otras veces asumo que el contexto es suficiente, lo que puede generar ambigüedad geométrica. Mi nuevo objetivo es estandarizar rigurosamente la tipografía matricial y vectorial a lo largo de todos mis futuros reportes.
+
+\section*{Tarea I: La SVD y la Geometría de la Distribución Normal}
+\subsection*{Relación entre los Ejes Elipsoidales y la SVD}
+Consideremos una matriz real $A$ de $n \times n$. Su correspondiente matriz $S = A^T A$ es simétrica y semidefinida positiva, actuando como la matriz de covarianza de un vector aleatorio con distribución normal multivariada $\mathcal{N}(\mathbf{0}, S)$. La función de densidad de probabilidad (PDF) es:
+\begin{equation}
+    p(\mathbf{x}) = \frac{1}{\sqrt{(2\pi)^n \det(S)}} \exp\left( -\frac{1}{2} \mathbf{x}^T S^{-1} \mathbf{x} \right)
+\end{equation}
+Las curvas de nivel de esta distribución, es decir, las regiones en $\mathbb{R}^n$ donde la probabilidad es equipotencial, se definen al igualar el exponente a una constante negativa. Esto da lugar a la forma cuadrática $\mathbf{x}^T S^{-1} \mathbf{x} = C$ para $C > 0$.
+
+Al calcular la Descomposición en Valores Singulares de $A = U \Sigma V^T$, podemos reescribir la matriz de covarianza espectralmente:
+\begin{equation}
+    S = A^T A = (V \Sigma^T U^T)(U \Sigma V^T) = V \Sigma^2 V^T
+\end{equation}
+Dado que $V$ es una matriz ortogonal ($V^T = V^{-1}$), la inversa de la covarianza es $S^{-1} = V \Sigma^{-2} V^T$.
+Sustituyendo esto en la forma cuadrática, obtenemos:
+\begin{equation}
+    \mathbf{x}^T (V \Sigma^{-2} V^T) \mathbf{x} = (V^T \mathbf{x})^T \Sigma^{-2} (V^T \mathbf{x}) = C
+\end{equation}
+Si aplicamos la transformación isométrica $\mathbf{w} = V^T \mathbf{x}$, la ecuación se desacopla en sus ejes canónicos:
+\begin{equation}
+    \sum_{i=1}^{n} \frac{w_i^2}{\sigma_i^2} = C
+\end{equation}
+Esta es la formulación geométrica exacta de un hiperelipsoide. De aquí concluimos la relación precisa:
+\begin{itemize}
+    \item \textbf{Direcciones principales:} Los ejes de simetría del elipsoide coinciden exactamente con los vectores columna de $V$ (los eigenvectores singulares derechos de la matriz $A$).
+    \item \textbf{Longitudes axiales:} La longitud del elipsoide a lo largo de la dirección definida por el eigenvector $v_i$ es directamente proporcional al respectivo valor singular $\sigma_i$. Específicamente, el semi-eje tiene una magnitud de $\sigma_i \sqrt{C}$.
+\end{itemize}
+
+\subsection*{Bonus Subtask A: Singularidad de la Matriz $A$}
+Si la matriz $A$ es singular, esto implica que no tiene rango completo y existe al menos un valor singular igual a cero ($\sigma_k = 0$). Como consecuencia directa, la matriz de covarianza $S = A^T A$ también será singular, teniendo $\det(S) = 0$.
+Bajo este escenario, la definición clásica de la PDF colapsa matemáticamente porque el factor de normalización $\frac{1}{\sqrt{\det(S)}}$ implica una división por cero. Geométricamente, el hiperelipsoide "se aplasta" completamente a lo largo de la dirección del eigenvector $v_k$, convirtiéndose en un plano degenerado de dimensión menor a $n$. La variable aleatoria ya no tiene varianza en esa dirección y la distribución deja de admitir una densidad respecto a la medida de Lebesgue en $\mathbb{R}^n$.
+
+\section*{Tarea II: Entropía Relativa y Divergencia KL}
+
+\subsection*{Subtask A: Divergencia KL para la Distribución Normal}
+Evaluaremos la divergencia de Kullback-Leibler $D_{KL}(\mathcal{N} || \tilde{\mathcal{N}})$, donde el modelo base $p(x)$ es la normal estándar $\mathcal{N}(0,1)$ y la distribución de aproximación $q(x)$ es $\mathcal{N}(\mu, \sigma)$.
+
+Por definición integral, la divergencia KL es la esperanza matemática del log-ratio bajo la distribución verdadera $p$:
+\begin{equation}
+    D_{KL}(p || q) = \mathbb{E}_{p} [\log p(x) - \log q(x)] = \mathbb{E}_{p} [\log p(x)] - \mathbb{E}_{p} [\log q(x)]
+\end{equation}
+
+Calculamos la esperanza para el modelo verdadero $p(x)$:
+\begin{equation}
+    \mathbb{E}_{p} [\log p(x)] = \mathbb{E}_{p} \left[ -\frac{1}{2}\log(2\pi) - \frac{x^2}{2} \right] = -\frac{1}{2}\log(2\pi) - \frac{1}{2}\mathbb{E}_{p}[x^2] = -\frac{1}{2}\log(2\pi) - \frac{1}{2}
+\end{equation}
+
+Calculamos la esperanza para el modelo de aproximación $q(x)$:
+\begin{align*}
+    \mathbb{E}_{p} [\log q(x)] &= \mathbb{E}_{p} \left[ -\frac{1}{2}\log(2\pi\sigma^2) - \frac{(x-\mu)^2}{2\sigma^2} \right] \\
+    &= -\frac{1}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2} \mathbb{E}_{p} [x^2 - 2x\mu + \mu^2]
+\end{align*}
+Sabiendo que para la normal estándar $\mathbb{E}_{p}[x^2] = 1$ y $\mathbb{E}_{p}[x] = 0$:
+\begin{equation}
+    \mathbb{E}_{p} [\log q(x)] = -\frac{1}{2}\log(2\pi) - \log(\sigma) - \frac{1 + \mu^2}{2\sigma^2}
+\end{equation}
+
+Restando ambos resultados para obtener la divergencia KL:
+\begin{align*}
+    D_{KL}(\mathcal{N} || \tilde{\mathcal{N}}) &= \left(-\frac{1}{2}\log(2\pi) - \frac{1}{2}\right) - \left(-\frac{1}{2}\log(2\pi) - \log(\sigma) - \frac{1 + \mu^2}{2\sigma^2}\right) \\
+    &= \log(\sigma) + \frac{1 + \mu^2}{2\sigma^2} - \frac{1}{2}
+\end{align*}
+
+\subsection*{Subtask B: Divergencia KL para Variables de Bernoulli}
+Para dos distribuciones de Bernoulli $B_p$ y $B_q$ con parámetros en $[0,1]$, la divergencia KL se expresa como la sumatoria sobre los dos únicos estados posibles del espacio muestral $\{0, 1\}$:
+\begin{equation}
+    D_{KL}(B_p || B_q) = p \log\left(\frac{p}{q}\right) + (1-p) \log\left(\frac{1-p}{1-q}\right)
+\end{equation}
+
+\textbf{Comprobación Algebraica de Simetría:}
+Sustituyendo el parámetro $q$ por $(1-p)$ en la fórmula:
+\begin{equation}
+    D_{KL}(B_p || B_{1-p}) = p \log\left(\frac{p}{1-p}\right) + (1-p) \log\left(\frac{1-p}{p}\right)
+\end{equation}
+Ahora, evaluando la divergencia inversa donde el modelo base es $B_{1-p}$ y aproximamos con $B_p$:
+\begin{equation}
+    D_{KL}(B_{1-p} || B_p) = (1-p) \log\left(\frac{1-p}{p}\right) + (1 - (1-p)) \log\left(\frac{1 - (1-p)}{1-p}\right)
+\end{equation}
+Simplificando el segundo término:
+\begin{equation}
+    D_{KL}(B_{1-p} || B_p) = (1-p) \log\left(\frac{1-p}{p}\right) + p \log\left(\frac{p}{1-p}\right)
+\end{equation}
+Por conmutatividad de la suma, comprobamos que ambas expresiones son matemáticamente equivalentes.
+
+\textbf{Interpretación Conceptual:}
+La identidad demostrada obedece al principio de invarianza ante el reetiquetado de los datos. En una variable binaria, los símbolos "éxito" y "fracaso" son convenciones arbitrarias. Cambiar el parámetro de una moneda de $p$ a $1-p$ equivale simplemente a pintar de otro color las caras de la moneda. La medida de entropía relativa cuantifica discrepancias en distribuciones de masa, independientemente de los nombres que le demos a los eventos subyacentes.
+
+\subsection*{Optional Subtask C: Análisis Topológico en el Cuadrado Unitario}
+Al mapear la diferencia $\Delta(p,q) = D_{KL}(B_p || B_q) - D_{KL}(B_q || B_p)$ sobre el espacio de hiperparámetros $[0,1] \times [0,1]$, el cuadrado unitario queda seccionado por sus dos diagonales principales ($p = q$ y $p = 1-q$).
+Estas particiones definen las siguientes regiones geométricas:
+\begin{itemize}
+    \item \textbf{Igualdad ($=$):} La divergencia es simétrica exclusivamente sobre las dos diagonales, formando una "X" perfecta en el dominio donde se cumple $p=q$ o bien $p = 1-q$.
+    \item \textbf{Región $D_{KL}(B_p || B_q) < D_{KL}(B_q || B_p)$:} Esto se verifica en los cuadrantes formados a la izquierda y derecha de la "X", donde la distribución $q$ tiene un comportamiento más determinista (cercano a los bordes 0 o 1) que $p$. La penalización algorítmica es menor al aproximar una señal estocástica con una señal determinista que a la inversa.
+    \item \textbf{Región $D_{KL}(B_p || B_q) > D_{KL}(B_q || B_p)$:} Se cumple en las cuñas superior e inferior de la partición. En esta zona, el modelo base $p$ es altamente certero (ej. $p=0.99$) y $q$ es más entrópico (ej. $q=0.5$). La penalización de KL explota asimétricamente porque modelar un evento que en la realidad casi siempre ocurre como un evento azaroso introduce una penalización logarítmica masiva.
+\end{itemize}
+
+\end{document}
