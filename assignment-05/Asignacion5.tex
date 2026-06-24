@@ -1,0 +1,105 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage[spanish]{babel}
+\singlespacing
+
+\title{5ta Asignación: Arquitecturas Profundas y Backpropagation}
+\author{Víctor Manuel Ruiz Pereda}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Tarea de Calentamiento: Reflexión Final sobre Escritura Técnica}
+Recordando mi compromiso de la primera asignación, mi objetivo principal era eliminar el abuso de notación simbólica taquigráfica (como $\forall, \exists, \Rightarrow$) incrustada en medio de párrafos de texto y reemplazarla por explicaciones articuladas en lenguaje natural. Este esfuerzo ha dado frutos significativos. Un fragmento de mi trabajo anterior lucía así: \textit{"$\forall$ capa $l$, si $\sigma$ es lineal $\Rightarrow$ la red colapsa"}. En mi redacción actual, he logrado un flujo mucho más maduro: \textit{"Para cualquier capa oculta $l$, si aplicamos una función de activación estrictamente lineal, podemos demostrar analíticamente que la profundidad de la red colapsa a una única transformación afín"}. A pesar de esta mejora en la legibilidad, he notado un \textbf{nuevo problema} en mis reportes recientes: al intentar justificar las dimensiones de las matrices, tiendo a sobre-explicar en texto continuo, escribiendo cosas como \textit{"la matriz de pesos de tamaño eme por ene se multiplica por..."}, lo cual resulta tedioso de leer. Mi nueva meta es confiar en la notación de conjuntos formales (ej. $W \in \mathbb{R}^{m \times n}$) integrándola orgánicamente en la oración, permitiendo que la matemática defina la dimensionalidad sin saturar la prosa explicativa.
+
+\section*{Sub-Tarea I: Unidades y el Forward Pass}
+\subsection*{Ejercicio 2.1: El Colapso de las Redes Lineales}
+Una red neuronal profunda extrae su poder expresivo de las funciones de activación no lineales. Si construimos una red de $L$ capas donde la función de activación en cada capa es estrictamente la identidad (o cualquier función lineal $f(z) = cz$), la red pierde completamente los beneficios de la profundidad.
+
+Demostración analítica para una red sin sesgos y activación identidad ($a^{(l)} = z^{(l)}$):
+Para la primera capa, la activación es $a^{(1)} = W^{(1)} x$.
+Para la segunda capa, la activación es $a^{(2)} = W^{(2)} a^{(1)} = W^{(2)} (W^{(1)} x)$.
+Generalizando hasta la capa de salida $L$, obtenemos:
+\begin{equation}
+    \hat{y} = a^{(L)} = W^{(L)} W^{(L-1)} \cdots W^{(2)} W^{(1)} x
+\end{equation}
+Dado que la multiplicación de matrices es asociativa y el producto de varias matrices reales da como resultado otra matriz real, podemos definir una única matriz equivalente $W_{eq} = W^{(L)} W^{(L-1)} \cdots W^{(1)}$.
+Por lo tanto, $\hat{y} = W_{eq} x$. 
+Esto demuestra que, sin importar cuántas capas lineales apilemos ($L=5$, $L=100$), matemáticamente toda la red \textbf{colapsa en un solo modelo de regresión lineal} o transformación afín, incapaz de modelar fronteras de decisión curvas.
+
+\textbf{El Teorema de Aproximación Universal:}
+Para solucionar este colapso, introducimos activaciones no lineales (como ReLU o Sigmoide). El Teorema de Aproximación Universal establece que una red neuronal feedforward con una sola capa oculta que contenga un número finito (pero suficientemente grande) de neuronas y una función de activación no lineal "squashing" (aplastante), puede aproximar cualquier función continua en un subconjunto compacto de $\mathbb{R}^n$ con un error arbitrariamente cercano a cero.
+
+\begin{figure}[h!]
+    \centering
+    % \includegraphics[width=0.6\textwidth]{fig1_universal_approx.png}
+    \caption{El Teorema de Aproximación Universal ilustra cómo la combinación lineal de múltiples activaciones no lineales permite modelar cualquier topología continua. \textit{Imagen generada por IA mediante el prompt: "A mathematical diagram illustrating the concept of the Universal Approximation Theorem..."}}
+    \label{fig:universal}
+\end{figure}
+
+\section*{Sub-Tarea II: Backpropagation}
+\subsection*{Ejercicio 4.2: Recurrencia en Capas Ocultas y Derivada del Peso}
+El algoritmo de retropropagación (Backpropagation) utiliza la regla de la cadena multivariable para distribuir el error desde la salida hacia las capas iniciales. Supongamos que ya hemos calculado el vector de error (gradiente local) para la capa $l$, definido como $\delta^{(l)} = \frac{\partial \mathcal{L}}{\partial z^{(l)}}$, donde $z^{(l)}$ es el vector de pre-activación de esa capa.
+
+Necesitamos derivar el gradiente de la función de pérdida $\mathcal{L}$ con respecto a la matriz de pesos de esa capa, $W^{(l)}$.
+Sabemos por el \textit{forward pass} que la pre-activación se define como:
+\begin{equation}
+    z^{(l)} = W^{(l)} a^{(l-1)} + b^{(l)}
+\end{equation}
+Aplicando la regla de la cadena para matrices, el gradiente respecto a $W^{(l)}$ es el producto de cómo cambia la pérdida respecto a $z^{(l)}$ (que es $\delta^{(l)}$) y cómo cambia $z^{(l)}$ respecto a $W^{(l)}$ (que es la activación de entrada $a^{(l-1)}$).
+La derivación tensorial estricta nos lleva al \textbf{producto externo} (outer product) entre el vector de error actual y el vector de activación de la capa anterior transpuesto:
+\begin{equation}
+    \nabla_{W^{(l)}} \mathcal{L} = \delta^{(l)} (a^{(l-1)})^T
+\end{equation}
+
+\textbf{Análisis Dimensional:}
+Si la capa $l$ tiene $d_{out}$ neuronas y la capa $l-1$ tiene $d_{in}$ neuronas, entonces el vector de error $\delta^{(l)} \in \mathbb{R}^{d_{out} \times 1}$ y el vector de activación $a^{(l-1)} \in \mathbb{R}^{d_{in} \times 1}$. 
+El producto externo de un vector columna $(d_{out} \times 1)$ por un vector fila transpuesto $(1 \times d_{in})$ produce exactamente una matriz de dimensiones $\mathbb{R}^{d_{out} \times d_{in}}$, la cual coincide impecablemente con la dimensionalidad requerida para actualizar la matriz de pesos original $W^{(l)}$.
+
+\section*{Sub-Tarea III: Arquitecturas de Redes Profundas}
+\subsection*{Análisis Comparativo: Convolucional vs. Densa (MLP)}
+El salto cuántico en el procesamiento de imágenes (Computer Vision) se logró al reemplazar las capas densamente conectadas (Multi-Layer Perceptrons) por Redes Neuronales Convolucionales (CNNs). Esta transición se basa en dos diferencias matemáticas fundamentales: la explosión de parámetros y los sesgos inductivos.
+
+\textbf{1. Conteo de Parámetros:}
+Si introducimos una imagen RGB de $256 \times 256$ píxeles a una capa Densa que contiene 1,000 neuronas, el vector de entrada aplanado tiene $256 \times 256 \times 3 = 196,608$ características. Dado que la capa Densa exige que cada neurona se conecte con cada entrada, la matriz de pesos requiere:
+\begin{equation}
+    196,608 \text{ entradas} \times 1,000 \text{ neuronas} \approx 196.6 \text{ millones de parámetros}.
+\end{equation}
+En contraste, una capa Convolucional con 64 filtros (canales de salida) de tamaño $3 \times 3$ aplicados a la misma imagen requiere únicamente:
+\begin{equation}
+    (3 \times 3 \times 3 \text{ canales de entrada}) \times 64 \text{ filtros} = 1,728 \text{ parámetros}.
+\end{equation}
+La CNN logra una reducción paramétrica de cinco órdenes de magnitud manteniendo una alta "capacidad" de extracción de características.
+
+\textbf{2. Sesgos Inductivos (Inductive Biases):}
+Las arquitecturas inyectan supuestos matemáticos sobre la naturaleza de los datos. 
+Un MLP asume que todas las características de entrada pueden interactuar entre sí sin importar su posición espacial; carece de un sesgo estructurado, obligando a la red a "aprender" la geometría desde cero.
+Una CNN inyecta fuertes sesgos inductivos:
+\begin{itemize}
+    \item \textit{Localidad Espacial:} Asume que los píxeles cercanos están altamente correlacionados (formando bordes o texturas), evaluando la imagen mediante campos receptivos locales (el tamaño del kernel).
+    \item \textit{Invarianza a la Traslación:} Asume que un patrón (como un ojo o una rueda) tiene el mismo significado semántico sin importar en qué coordenada de la imagen aparezca, lo cual se logra compartiendo la misma matriz de pesos (filtro) a lo largo de todo el barrido de convolución.
+\end{itemize}
+
+\begin{figure}[h!]
+    \centering
+    % \includegraphics[width=0.6\textwidth]{fig2_cnn_vs_mlp.png}
+    \caption{Esquematización topológica de la conectividad global en capas Densas frente a la conectividad esparcida y focalizada en Redes Convolucionales. \textit{Imagen generada por IA mediante el prompt: "A clean, educational diagram comparing the connectivity of a Fully Connected..."}}
+    \label{fig:arquitecturas}
+\end{figure}
+
+\vspace{1.5cm}
+\begin{center}
+\fbox{
+\begin{minipage}{0.9\textwidth}
+\small \textbf{Reconocimiento de Autoría Académica:} El formato general, los temas a desarrollar y la plataforma base de esta tarea corresponden al material oficial del curso \textit{Mathematics of AI} impartido por el Dr. Eduardo Dueñez en UTSA. Las redacciones técnicas, comparaciones arquitectónicas y demostraciones algebraicas plasmadas aquí son un trabajo académico de autoría independiente.
+\end{minipage}
+}
+\end{center}
+
+\end{document}
