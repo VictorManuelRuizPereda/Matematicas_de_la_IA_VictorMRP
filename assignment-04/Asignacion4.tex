@@ -1,0 +1,175 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage[spanish]{babel}
+\singlespacing
+
+\title{4ta Asignación: Diagnóstico Empírico y Optimización SGD}
+\author{Víctor Manuel Ruiz Pereda}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Tarea de Calentamiento: Reflexión de Progreso Técnico}
+Al hacer un balance de mi desarrollo como escritor técnico durante este semestre, identifico como mi mayor fortaleza la transición hacia explicaciones geométricas y algorítmicas claras. En mis primeros reportes, mis análisis de resultados computacionales eran meramente descriptivos. Por ejemplo, al principio habría escrito: \textit{"La red neuronal con 15 épocas tuvo un error de 0.01 pero falló en la prueba."} Hoy en día, estructuro mis hallazgos fundamentándolos en la teoría subyacente: \textit{"La divergencia observada entre la pérdida de entrenamiento (0.015) y la precisión de validación evidencia un claro régimen de sobreajuste, indicando que el modelo carece de generalización debido a una parametrización excesiva."} A pesar de este avance, reconozco una nueva área de oportunidad: la integración fluida de los apoyos visuales. He notado que a veces mis figuras y gráficos se sienten desconectados del texto principal. Mi objetivo para esta y futuras asignaciones es referenciar explícitamente cada figura dentro de mi argumentación, utilizándolas como pruebas visuales directas de las deducciones matemáticas que estoy exponiendo.
+
+\section*{Sub-Tarea I: Diagnóstico del Compromiso Sesgo-Varianza}
+Mientras que la descomposición teórica del Error Cuadrático Medio nos brinda una base matemática sólida, en la práctica (donde el proceso generativo verdadero es desconocido) no podemos calcular analíticamente el Sesgo o la Varianza. En su lugar, recurrimos al diagnóstico empírico mediante \textbf{Curvas de Aprendizaje}.
+
+\subsection*{Curvas de Aprendizaje y Comportamiento Asintótico}
+Una curva de aprendizaje grafica el error de entrenamiento y el error de validación en función de la cantidad de datos de entrenamiento proporcionados al modelo, $N$.
+
+Sea $\mathcal{E}_{train}(N)$ el error empírico sobre el conjunto de entrenamiento y $\mathcal{E}_{val}(N)$ el error de generalización estimado sobre un conjunto de validación independiente.
+
+\textbf{Régimen de Alto Sesgo (Subajuste):}
+Cuando un modelo es demasiado simple para capturar la complejidad de los datos (por ejemplo, intentar ajustar una regresión lineal a datos altamente no lineales), exhibe un alto sesgo. Matemáticamente, a medida que $N \to \infty$:
+\begin{equation}
+    \lim_{N \to \infty} \mathcal{E}_{train}(N) \approx \lim_{N \to \infty} \mathcal{E}_{val}(N) \gg \text{Error Deseado}
+\end{equation}
+Ambas curvas convergen rápidamente hacia un valor alto (ver Figura \ref{fig:learning_curves}). Proveer más datos a un modelo con alto sesgo es algorítmicamente inútil, ya que la capacidad representacional del modelo ha sido saturada.
+
+\textbf{Régimen de Alta Varianza (Sobreajuste):}
+Cuando un modelo posee una capacidad excesiva (como una red neuronal profunda sin regularización), se ajustará perfectamente al ruido estocástico de los datos de entrenamiento. En este escenario:
+\begin{equation}
+    \mathcal{E}_{train}(N) \approx 0, \quad \mathcal{E}_{val}(N) \gg \mathcal{E}_{train}(N)
+\end{equation}
+Existe una brecha masiva (generalization gap) entre ambas métricas. En este caso, incrementar $N$ empujará lentamente el error de validación hacia abajo, reduciendo la varianza empírica del estimador.
+
+\begin{figure}[h!]
+    \centering
+    % \includegraphics[width=0.7\textwidth]{fig1_learning_curves.png}
+    \caption{Comportamiento de las Curvas de Aprendizaje bajo regímenes de Alto Sesgo y Alta Varianza. \textit{Imagen generada por IA con el prompt: "A highly professional academic plot showing two distinct Machine Learning 'Learning Curves'..."}}
+    \label{fig:learning_curves}
+\end{figure}
+
+\newpage
+\section*{Sub-Tarea II: Evolución del SGD (Mini-Lotes y Momento)}
+El Descenso de Gradiente Estocástico (SGD) tradicional evalúa el gradiente con respecto a un solo ejemplo de entrenamiento por iteración. Aunque introduce un ruido estocástico que ayuda a escapar de mínimos locales, es computacionalmente ineficiente en hardware moderno (GPUs) debido a la incapacidad de vectorizar operaciones de un solo vector.
+
+\subsection*{SGD por Mini-Lotes}
+Para balancear la varianza del gradiente y la eficiencia computacional, se introduce el SGD por mini-lotes (Mini-batch SGD). Sea $\mathcal{B}$ un subconjunto aleatorio del conjunto de entrenamiento con tamaño $|\mathcal{B}| = m$. La regla de actualización es:
+\begin{equation}
+    \theta_{t+1} = \theta_t - \eta \left( \frac{1}{m} \sum_{i \in \mathcal{B}} \nabla_\theta \ell(\theta_t; x_i, y_i) \right)
+\end{equation}
+Por la ley de los grandes números, la varianza de este estimador del gradiente se reduce por un factor proporcional a $1/m$, ofreciendo trayectorias de optimización más estables mientras mantiene suficiente ruido estocástico para la regularización implícita.
+
+\subsection*{Resolviendo Barrancos con Momento (Momentum)}
+Un problema crítico para el SGD estándar es la navegación a través de "barrancos" (ravines) en la superficie de pérdida: regiones donde la curvatura es mucho más pronunciada en una dimensión que en otra (el número de condición de la matriz Hessiana es muy alto). El gradiente estocástico oscilará violentamente a lo largo de las paredes del barranco, avanzando sumamente lento hacia el mínimo óptimo.
+
+Para mitigar esto, se introduce el \textbf{Momento}, que acumula un promedio móvil exponencial de los gradientes históricos. Definimos la velocidad $v_t$:
+\begin{align}
+    v_t &= \gamma v_{t-1} + \eta \nabla_\theta \mathcal{L}(\theta_t; \mathcal{B}) \\
+    \theta_{t+1} &= \theta_t - v_t
+\end{align}
+donde $\gamma \in [0, 1)$ es el coeficiente de momento (típicamente $0.9$).
+Físicamente, esto simula una bola rodando por la superficie de pérdida adquiriendo inercia. Matemáticamente, en las dimensiones donde el gradiente cambia de signo constantemente (oscilaciones), los términos opuestos se cancelan en el promedio móvil, amortiguando la oscilación. En la dimensión donde el gradiente apunta consistentemente en la misma dirección (hacia el mínimo), los vectores se suman constructivamente, acelerando la convergencia.
+
+\begin{figure}[h!]
+    \centering
+    % \includegraphics[width=0.7\textwidth]{fig2_momentum.png}
+    \caption{Comparación topológica: Oscilaciones del SGD estándar vs. la aceleración suave del SGD con Momento en un barranco no convexo. \textit{Imagen generada por IA con el prompt: "A 2D contour plot of a non-convex loss function showing a narrow ravine..."}}
+    \label{fig:momentum}
+\end{figure}
+
+\vspace{2cm}
+\begin{center}
+\fbox{
+\begin{minipage}{0.9\textwidth}
+\small \textbf{Declaración de Atribución Académica:} El diseño de esta asignación, así como los fundamentos y herramientas interactivas, pertenecen al Dr. Eduardo Dueñez en el marco del curso \textit{MAT 4953/6973 Math Foundations of AI} de la Universidad de Texas en San Antonio (UTSA). Todo el código analítico, análisis empírico y documentación expuesta ha sido generada individualmente.
+\end{minipage}
+}
+\end{center}
+
+\end{document}\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage[spanish]{babel}
+\singlespacing
+
+\title{4ta Asignación: Diagnóstico Empírico y Optimización SGD}
+\author{Víctor Manuel Ruiz Pereda}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Tarea de Calentamiento: Reflexión de Progreso Técnico}
+Al hacer un balance de mi desarrollo como escritor técnico durante este semestre, identifico como mi mayor fortaleza la transición hacia explicaciones geométricas y algorítmicas claras. En mis primeros reportes, mis análisis de resultados computacionales eran meramente descriptivos. Por ejemplo, al principio habría escrito: \textit{"La red neuronal con 15 épocas tuvo un error de 0.01 pero falló en la prueba."} Hoy en día, estructuro mis hallazgos fundamentándolos en la teoría subyacente: \textit{"La divergencia observada entre la pérdida de entrenamiento (0.015) y la precisión de validación evidencia un claro régimen de sobreajuste, indicando que el modelo carece de generalización debido a una parametrización excesiva."} A pesar de este avance, reconozco una nueva área de oportunidad: la integración fluida de los apoyos visuales. He notado que a veces mis figuras y gráficos se sienten desconectados del texto principal. Mi objetivo para esta y futuras asignaciones es referenciar explícitamente cada figura dentro de mi argumentación, utilizándolas como pruebas visuales directas de las deducciones matemáticas que estoy exponiendo.
+
+\section*{Sub-Tarea I: Diagnóstico del Compromiso Sesgo-Varianza}
+Mientras que la descomposición teórica del Error Cuadrático Medio nos brinda una base matemática sólida, en la práctica (donde el proceso generativo verdadero es desconocido) no podemos calcular analíticamente el Sesgo o la Varianza. En su lugar, recurrimos al diagnóstico empírico mediante \textbf{Curvas de Aprendizaje}.
+
+\subsection*{Curvas de Aprendizaje y Comportamiento Asintótico}
+Una curva de aprendizaje grafica el error de entrenamiento y el error de validación en función de la cantidad de datos de entrenamiento proporcionados al modelo, $N$.
+
+Sea $\mathcal{E}_{train}(N)$ el error empírico sobre el conjunto de entrenamiento y $\mathcal{E}_{val}(N)$ el error de generalización estimado sobre un conjunto de validación independiente.
+
+\textbf{Régimen de Alto Sesgo (Subajuste):}
+Cuando un modelo es demasiado simple para capturar la complejidad de los datos (por ejemplo, intentar ajustar una regresión lineal a datos altamente no lineales), exhibe un alto sesgo. Matemáticamente, a medida que $N \to \infty$:
+\begin{equation}
+    \lim_{N \to \infty} \mathcal{E}_{train}(N) \approx \lim_{N \to \infty} \mathcal{E}_{val}(N) \gg \text{Error Deseado}
+\end{equation}
+Ambas curvas convergen rápidamente hacia un valor alto (ver Figura \ref{fig:learning_curves}). Proveer más datos a un modelo con alto sesgo es algorítmicamente inútil, ya que la capacidad representacional del modelo ha sido saturada.
+
+\textbf{Régimen de Alta Varianza (Sobreajuste):}
+Cuando un modelo posee una capacidad excesiva (como una red neuronal profunda sin regularización), se ajustará perfectamente al ruido estocástico de los datos de entrenamiento. En este escenario:
+\begin{equation}
+    \mathcal{E}_{train}(N) \approx 0, \quad \mathcal{E}_{val}(N) \gg \mathcal{E}_{train}(N)
+\end{equation}
+Existe una brecha masiva (generalization gap) entre ambas métricas. En este caso, incrementar $N$ empujará lentamente el error de validación hacia abajo, reduciendo la varianza empírica del estimador.
+
+\begin{figure}[h!]
+    \centering
+    % \includegraphics[width=0.7\textwidth]{fig1_learning_curves.png}
+    \caption{Comportamiento de las Curvas de Aprendizaje bajo regímenes de Alto Sesgo y Alta Varianza. \textit{Imagen generada por IA con el prompt: "A highly professional academic plot showing two distinct Machine Learning 'Learning Curves'..."}}
+    \label{fig:learning_curves}
+\end{figure}
+
+\newpage
+\section*{Sub-Tarea II: Evolución del SGD (Mini-Lotes y Momento)}
+El Descenso de Gradiente Estocástico (SGD) tradicional evalúa el gradiente con respecto a un solo ejemplo de entrenamiento por iteración. Aunque introduce un ruido estocástico que ayuda a escapar de mínimos locales, es computacionalmente ineficiente en hardware moderno (GPUs) debido a la incapacidad de vectorizar operaciones de un solo vector.
+
+\subsection*{SGD por Mini-Lotes}
+Para balancear la varianza del gradiente y la eficiencia computacional, se introduce el SGD por mini-lotes (Mini-batch SGD). Sea $\mathcal{B}$ un subconjunto aleatorio del conjunto de entrenamiento con tamaño $|\mathcal{B}| = m$. La regla de actualización es:
+\begin{equation}
+    \theta_{t+1} = \theta_t - \eta \left( \frac{1}{m} \sum_{i \in \mathcal{B}} \nabla_\theta \ell(\theta_t; x_i, y_i) \right)
+\end{equation}
+Por la ley de los grandes números, la varianza de este estimador del gradiente se reduce por un factor proporcional a $1/m$, ofreciendo trayectorias de optimización más estables mientras mantiene suficiente ruido estocástico para la regularización implícita.
+
+\subsection*{Resolviendo Barrancos con Momento (Momentum)}
+Un problema crítico para el SGD estándar es la navegación a través de "barrancos" (ravines) en la superficie de pérdida: regiones donde la curvatura es mucho más pronunciada en una dimensión que en otra (el número de condición de la matriz Hessiana es muy alto). El gradiente estocástico oscilará violentamente a lo largo de las paredes del barranco, avanzando sumamente lento hacia el mínimo óptimo.
+
+Para mitigar esto, se introduce el \textbf{Momento}, que acumula un promedio móvil exponencial de los gradientes históricos. Definimos la velocidad $v_t$:
+\begin{align}
+    v_t &= \gamma v_{t-1} + \eta \nabla_\theta \mathcal{L}(\theta_t; \mathcal{B}) \\
+    \theta_{t+1} &= \theta_t - v_t
+\end{align}
+donde $\gamma \in [0, 1)$ es el coeficiente de momento (típicamente $0.9$).
+Físicamente, esto simula una bola rodando por la superficie de pérdida adquiriendo inercia. Matemáticamente, en las dimensiones donde el gradiente cambia de signo constantemente (oscilaciones), los términos opuestos se cancelan en el promedio móvil, amortiguando la oscilación. En la dimensión donde el gradiente apunta consistentemente en la misma dirección (hacia el mínimo), los vectores se suman constructivamente, acelerando la convergencia.
+
+\begin{figure}[h!]
+    \centering
+    % \includegraphics[width=0.7\textwidth]{fig2_momentum.png}
+    \caption{Comparación topológica: Oscilaciones del SGD estándar vs. la aceleración suave del SGD con Momento en un barranco no convexo. \textit{Imagen generada por IA con el prompt: "A 2D contour plot of a non-convex loss function showing a narrow ravine..."}}
+    \label{fig:momentum}
+\end{figure}
+
+\vspace{2cm}
+\begin{center}
+\fbox{
+\begin{minipage}{0.9\textwidth}
+\small \textbf{Declaración de Atribución Académica:} El diseño de esta asignación, así como los fundamentos y herramientas interactivas, pertenecen al Dr. Eduardo Dueñez en el marco del curso \textit{MAT 4953/6973 Math Foundations of AI} de la Universidad de Texas en San Antonio (UTSA). Todo el código analítico, análisis empírico y documentación expuesta ha sido generada individualmente.
+\end{minipage}
+}
+\end{center}
+
+\end{document}
