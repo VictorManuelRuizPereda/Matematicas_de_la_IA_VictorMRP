@@ -12,12 +12,12 @@ Bienvenidos a mi repositorio académico  del curso **Matemáticas de la IA**. Es
 * **Nombre:** Víctor Manuel Ruiz Pereda
 * **Grado:** Matemáticas Aplicadas y Computacion FES Acatlán UNAM
 
-## 📂 Índice de Asignaciones
+### 📂 Índice de Asignaciones
 
 | Asignación | Temática Principal | Documento |
 | :--- | :--- | :--- |
-| **Assignment 1** | Redes Feedforward, MNIST y Entropía Cruzada Categórica |
-| **Assignment 2** | Descomposición en Valores Singulares (SVD) | 
-| **Assignment 3** | Probabilidad Multivariada y Divergencia KL | 
-| **Assignment 4** | Tradeoff Sesgo-Varianza y Optimización Estocástica | 
-| **Assignment 5** | Backpropagation y Modelos Generativos |
+| **Assignment 1** | Redes Feedforward, MNIST y Entropía Cruzada | [Ver PDF](./assignment-01/Assignment_1.pdf) |
+| **Assignment 2** | Descomposición en Valores Singulares (SVD) | [Ver PDF](./assignment-02/Assignment_2.pdf) |
+| **Assignment 3** | Probabilidad Multivariada y Divergencia KL | [Ver PDF](./assignment-03/Assignment_3.pdf) |
+| **Assignment 4** | Tradeoff Sesgo-Varianza y Optimización Estocástica | [Ver PDF](./assignment-04/Assignment_4.pdf) |
+| **Assignment 5** | Backpropagation y Modelos Generativos | [Ver PDF](./assignment-05/Assignment_5.pdf) |
