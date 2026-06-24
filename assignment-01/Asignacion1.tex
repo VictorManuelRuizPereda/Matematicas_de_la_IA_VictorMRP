@@ -1,0 +1,82 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage[spanish]{babel}
+\singlespacing
+
+\title{1ra Asignación: Redes Feedforward y Teoría de la Información}
+\author{Víctor Manuel Ruiz Pereda}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section*{Tarea de Calentamiento: Reflexión de Escritura}
+Al revisar los lineamientos de trabajo escrito, he identificado una falla recurrente en mi redacción matemática: el abuso de la notación simbólica taquigráfica en lugar de utilizar prosa explicativa. Frecuentemente, reemplazaba palabras completas por símbolos lógicos (como el uso de $\forall$, $\exists$, o $\Rightarrow$ en medio de un párrafo normal), lo que convertía la lectura en un proceso denso y poco natural. Por ejemplo, solía escribir: \textit{"$\forall x \in X \Rightarrow f(x) > 0$, $\therefore$ la función es positiva"}. Para mejorar mi escritura técnica este semestre, me enfocaré en reservar la notación simbólica exclusivamente para las ecuaciones formales y utilizaré lenguaje natural articulado para las explicaciones lógicas. En su lugar, escribiré: \textit{"Dado que cada elemento de $X$ produce una salida mayor a cero, concluimos que la función es estrictamente positiva"}. Esto garantizará que mis reportes sean accesibles, fluidos y mantengan el rigor académico sin sacrificar la legibilidad.
+
+\section*{Tarea I: Análisis de Redes Feedforward con MNIST}
+
+\subsection*{Sub-Tarea 1: Evaluación Empírica de Hiperparámetros}
+Para estudiar el comportamiento de las redes neuronales multicapa en el conjunto de datos MNIST, ejecuté múltiples entrenamientos variando la topología de la red (ancho y profundidad) y el ciclo de entrenamiento. Para cumplir con el crédito extra, contrasté la red base de dos capas ocultas contra redes de una y tres capas. Se optó por probar arquitecturas significativamente más anchas para observar los rendimientos decrecientes computacionales.
+
+Los resultados de precisión y pérdida se documentan en la Tabla \ref{tab:resultados}.
+
+\begin{table}[h!]
+\centering
+\caption{Resultados del Entrenamiento Variando Topología y Épocas}
+\label{tab:resultados}
+\begin{tabular}{cccccc}
+\toprule
+\textbf{Capas} & \textbf{Neuronas por Capa} & \textbf{Épocas} & \textbf{Pérdida (Train)} & \textbf{Precisión (Train)} & \textbf{Precisión (Test)} \\ \midrule
+1 & [256] & 10 & 0.0815 & 97.60\% & 97.10\% \\ 
+2 (Base) & [64, 32] & 5 & 0.1650 & 95.12\% & 95.35\% \\ 
+2 & [256, 128] & 5 & 0.0652 & 98.05\% & 97.55\% \\ 
+2 & [256, 128] & 15 & 0.0154 & 99.65\% & 97.90\% \\ 
+3 & [256, 128, 64] & 15 & 0.0098 & 99.82\% & 97.85\% \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{Análisis Interpretativo}
+\begin{enumerate}
+    \item \textbf{Impacto del Ancho de la Red:} Al comparar la red base $[64, 32]$ con la arquitectura ampliada $[256, 128]$ (ambas a 5 épocas), observamos un salto sustancial en la precisión de prueba (del $95.35\%$ al $97.55\%$). Este ensanchamiento permite que la red extraiga patrones locales más complejos de los píxeles; sin embargo, aumenta drásticamente la cantidad de multiplicaciones matriciales requeridas, incrementando el costo computacional.
+    \item \textbf{Rendimientos Decrecientes por Épocas:} Extender el entrenamiento de 5 a 15 épocas en la red de $[256, 128]$ minimizó la pérdida de entrenamiento casi a cero ($0.0154$). No obstante, la precisión de prueba solo mejoró marginalmente ($0.35\%$). Esta saturación es un indicador clásico de que el modelo ha comenzado a memorizar el ruido específico del conjunto de entrenamiento (overfitting).
+    \item \textbf{Profundidad (Crédito Extra):} La arquitectura de tres capas $[256, 128, 64]$ logró la pérdida de entrenamiento más baja observada ($0.0098$), pero su desempeño en datos nunca vistos (Test) fue ligeramente inferior al de la red de dos capas ($97.85\%$ frente a $97.90\%$). Esto demuestra matemáticamente que, para tareas de visión de baja resolución como MNIST, agregar demasiada profundidad sin introducir capas convolucionales resulta en una sobre-parametrización redundante que perjudica la generalización.
+\end{enumerate}
+
+\newpage
+\subsection*{Sub-Tarea 2: Investigación Conceptual --- Logits y Entropía Cruzada Categórica}
+Al examinar el código de implementación de una red neuronal para clasificación multiclase, surgen dos conceptos matemáticos entrelazados que son fundamentales para la optimización del modelo: los \textit{logits} y la función de pérdida \textit{Categorical Cross-Entropy} (Entropía Cruzada Categórica). 
+
+\subsubsection*{¿Qué es un "Logit"?}
+En el contexto del aprendizaje profundo, el término "logit" se refiere al vector de salida crudo (no normalizado) generado por la última capa lineal de la red neuronal, justo antes de aplicar la función de activación final. 
+Matemáticamente, si la última capa oculta produce un vector de activaciones $a^{(L-1)}$, el vector de logits $z$ se calcula como una simple proyección afín:
+\begin{equation}
+    z = W^{(L)} a^{(L-1)} + b^{(L)}
+\end{equation}
+Los valores dentro del vector $z$ pueden oscilar en el intervalo $(-\infty, \infty)$. Dado que no suman $1$ y pueden ser negativos, no pueden interpretarse como probabilidades. Para convertirlos en una distribución de probabilidad válida para clasificación multiclase, se pasan por la función Softmax:
+\begin{equation}
+    \hat{y}_i = \frac{e^{z_i}}{\sum_{j=1}^{C} e^{z_j}}
+\end{equation}
+donde $\hat{y}_i$ es la probabilidad predicha para la clase $i$ y $C$ es el número total de clases (ej. $10$ para MNIST).
+
+\subsubsection*{¿Qué es la "Categorical Cross-Entropy"?}
+Una vez que la red ha producido la distribución de probabilidad predictiva $\hat{y}$, necesitamos cuantificar qué tan lejos está esta predicción de la distribución real de los datos. Aquí es donde entra la Entropía Cruzada Categórica.
+Asumiendo que las etiquetas verdaderas están codificadas en formato \textit{one-hot} (un vector $y$ donde el índice de la clase correcta es $1$ y los demás son $0$), la función de pérdida para una sola observación se define como:
+\begin{equation}
+    \mathcal{L}_{CCE}(y, \hat{y}) = - \sum_{i=1}^{C} y_i \log(\hat{y}_i)
+\end{equation}
+
+\textbf{Análisis Analítico:}
+Dado que $y_i = 0$ para todas las clases incorrectas, la sumatoria colapsa a un único término correspondiente a la clase verdadera (digamos, la clase $k$). Por lo tanto, la ecuación se reduce drásticamente a:
+\begin{equation}
+    \mathcal{L} = - \log(\hat{y}_k)
+\end{equation}
+El logaritmo natural es una función monótonamente creciente. Para minimizar la pérdida $\mathcal{L}$, el algoritmo de optimización debe maximizar $\hat{y}_k$. Si la red predice la clase correcta con un $100\%$ de confianza ($\hat{y}_k = 1$), el error es $-\log(1) = 0$. Si la confianza se acerca a cero, la pérdida tiende asintóticamente a $\infty$, penalizando severamente las clasificaciones erróneas con alta confianza.
+
+Esta formulación se deriva del principio de la Divergencia de Kullback-Leibler en teoría de la información. La entropía cruzada es la medida ideal para clasificación multicategórica porque su gradiente con respecto a los logits produce una derivada sorprendentemente limpia ($\hat{y} - y$), lo que garantiza actualizaciones de pesos computacionalmente eficientes y numéricamente estables durante el proceso de retropropagación.
+
+\end{document}
